@@ -10,13 +10,13 @@ import (
 	"time"
 )
 
-//CsvDecoder parses a csv file and returns an array of pointers the type specified
+//Decoder decodes a csv specific io.Reader.
 type Decoder struct {
 	reader *csv.Reader
 	headerKeys map[string]int
 }
 
-//NewDecoder receives as an argument a io.Reader and returns a pointer to a CsvDecoder
+//NewDecoder receives as an argument a io.Reader and returns a pointer to a CsvDecoder.
 func NewDecoder(reader io.Reader) *Decoder {
 	r := csv.NewReader(reader)
 	return &Decoder{
@@ -24,7 +24,7 @@ func NewDecoder(reader io.Reader) *Decoder {
 	}
 }
 
-//Parse creates the array of the given type from the csv file
+//Decode method accepts a pointer to a slice with it will populate and returns a error.
 //TODO accept tag values as index also
 func (p *Decoder) Decode(v interface{}) error {
 	rv := reflect.ValueOf(v)
