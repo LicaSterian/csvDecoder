@@ -1,140 +1,114 @@
 package parser
 
 import (
-	"encoding/csv"
 	"fmt"
-	"os"
 	"reflect"
+	"errors"
+	"io"
+	"encoding/csv"
 	"strconv"
 	"time"
 )
 
 //Parser parse a csv file and returns an array of pointers of the type specified
-type Parser interface {
-	Parse(resultType interface{})
+type Decoder interface {
+	Decode(v interface{}) error
 }
 
-//CsvParser parses a csv file and returns an array of pointers the type specified
-type CsvParser struct {
-	CsvFile         string
-	CsvSeparator    rune
-	SkipFirstLine   bool
-	SkipEmptyValues bool
+//CsvDecoder parses a csv file and returns an array of pointers the type specified
+type CsvDecoder struct {
+	reader *csv.Reader
+	//SkipEmptyValues bool
+	headerKeys map[string]int
+}
+
+func NewDecoder(reader io.Reader) *CsvDecoder {
+	csvReader := csv.NewReader(reader)
+	return &CsvDecoder{
+		reader: csvReader,
+	}
 }
 
 //Parse creates the array of the given type from the csv file
-func (parser CsvParser) Parse(f interface{}) ([]interface{}, error) {
-
-	csvFile, err := os.Open(parser.CsvFile)
+func (p *CsvDecoder) Decode(v interface{}) error {
+	rv := reflect.ValueOf(v)
+	re := rv.Elem()
+	rt := rv.Type()
+	rk := rt.Kind()
+	if rk == reflect.Ptr && !rv.IsNil() {
+		rv = reflect.Indirect(rv)
+		rt = rv.Type()
+		rk = rt.Kind()
+	} else {
+		return errors.New("Decode parameter must be a non-nil pointer to a slice")
+	}
+	headerRecords, err := p.reader.Read()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	defer csvFile.Close()
-
-	var csvReader = csv.NewReader(csvFile)
-	csvReader.Comma = parser.CsvSeparator
-
-	var results = make([]interface{}, 0, 0)
-
-	resultType := reflect.ValueOf(f).Type()
-
-	if parser.SkipFirstLine {
-		csvReader.Read()
+	p.headerKeys = map[string]int{}
+	for headerRecordIndex, headerRecord := range headerRecords {
+		p.headerKeys[headerRecord] = headerRecordIndex
 	}
-
+	resultElem := rt.Elem()
 	for {
-
-		rawCSVLine, err := csvReader.Read()
+		line, err := p.reader.Read()
 		if err != nil {
 			if fmt.Sprint(err) == "EOF" {
 				break
 			} else {
-				return nil, err
+				return err
 			}
 		}
-
-		var newResult = reflect.New(resultType).Interface()
-
-		// set all the struct fields
-		for fieldIndex := 0; fieldIndex < resultType.NumField(); fieldIndex++ {
-			var currentField = resultType.Field(fieldIndex)
-
+		row := reflect.New(resultElem)
+		for fieldIndex := 0; fieldIndex < resultElem.NumField(); fieldIndex++ {
+			var currentField = resultElem.Field(fieldIndex)
 			var csvTag = currentField.Tag.Get("csv")
-			var csvColumnIndex, csvTagErr = strconv.Atoi(csvTag)
-
-			if csvTagErr != nil {
-				if csvTag == "" {
-					csvColumnIndex = fieldIndex
-				} else {
-					return nil, csvTagErr
-				}
-			}
-
-			if csvColumnIndex < 0 {
-				return nil, fmt.Errorf("csv tag in struct field %v is less than zero", currentField.Name)
-			}
-
-			if csvColumnIndex >= len(rawCSVLine) {
-				return nil, fmt.Errorf("Trying to access csv column %v for field %v, but csv has only %v column(s)", csvColumnIndex, currentField.Name, len(rawCSVLine))
-			}
-
-			var csvElement = rawCSVLine[csvColumnIndex]
-			var settableField = reflect.ValueOf(newResult).Elem().FieldByName(currentField.Name)
-
-			if csvElement == "" && parser.SkipEmptyValues {
-				continue
-			}
-
+			csvFieldIndex := p.headerKeys[csvTag]
+			var csvValue = line[csvFieldIndex]
+			var settableField = row.Elem().FieldByName(currentField.Name)
 			switch currentField.Type.Name() {
-
 			case "bool":
-				var parsedBool, err = strconv.ParseBool(csvElement)
+				var parsedBool, err = strconv.ParseBool(csvValue)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				settableField.SetBool(parsedBool)
-
 			case "uint", "uint8", "uint16", "uint32", "uint64":
-				var parsedUint, err = strconv.ParseUint(csvElement, 10, 64)
+				var parsedUint, err = strconv.ParseUint(csvValue, 10, 64)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				settableField.SetUint(uint64(parsedUint))
-
 			case "int", "int32", "int64":
-				var parsedInt, err = strconv.Atoi(csvElement)
+				var parsedInt, err = strconv.Atoi(csvValue)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				settableField.SetInt(int64(parsedInt))
-
 			case "float32":
-				var parsedFloat, err = strconv.ParseFloat(csvElement, 32)
+				var parsedFloat, err = strconv.ParseFloat(csvValue, 32)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				settableField.SetFloat(parsedFloat)
-
 			case "float64":
-				var parsedFloat, err = strconv.ParseFloat(csvElement, 64)
+				var parsedFloat, err = strconv.ParseFloat(csvValue, 64)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				settableField.SetFloat(parsedFloat)
-
 			case "string":
-				settableField.SetString(csvElement)
-
+				settableField.SetString(csvValue)
 			case "Time":
-				var date, err = time.Parse(currentField.Tag.Get("csvDate"), csvElement)
+				var date, err = time.Parse(currentField.Tag.Get("csvDate"), csvValue)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				settableField.Set(reflect.ValueOf(date))
 			}
 		}
-
-		results = append(results, newResult)
+		re.Set(reflect.Append(re, row.Elem()))
 	}
-	return results, err
+	return nil
 }
