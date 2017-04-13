@@ -115,7 +115,7 @@ func (p *Decoder) Decode(v interface{}) error {
 				}
 			}
 		}
-		if row.Kind() == reflect.Ptr {
+		if row.Kind() != reflect.Ptr {
 			row = row.Elem()
 		}
 		re.Set(reflect.Append(re, row))
