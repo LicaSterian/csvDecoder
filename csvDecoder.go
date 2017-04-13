@@ -26,7 +26,6 @@ func NewDecoder(reader io.Reader) *Decoder {
 
 //Decode method accepts a pointer to a slice with it will populate and returns a error.
 //TODO accept tag values as index also
-//TODO see why it puts "0" to unspecified csv tag
 func (p *Decoder) Decode(v interface{}) error {
 	rv := reflect.ValueOf(v)
 	re := rv.Elem()
