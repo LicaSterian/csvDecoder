@@ -61,9 +61,6 @@ func (p *Decoder) Decode(v interface{}) error {
 			}
 		}
 		row := reflect.New(rte)
-		fmt.Println("row >>>", row)
-		fmt.Println("rt >>>", rt)
-		fmt.Println("rte >>>", rte)
 		for i := 0; i < rte.NumField(); i++ {
 			var field = rte.Field(i)
 			var tag = field.Tag.Get("csv")
