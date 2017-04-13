@@ -29,4 +29,5 @@ func TestDecode(t *testing.T) {
 	if firstEntry.Id != 0 || firstEntry.Nickname != "SLIde" || firstEntry.CreatedOn.Format("2006-01-02") != "2017-04-12" {
 		t.Fatalf(`First csv entry should be {Id:0, Nickname:SLIde, CreatedOn: 2017-04-12 00:00:00 +0000UTC}, but it's %+v`, firstEntry)
 	}
+	t.Logf("%#v", firstEntry)
 }
