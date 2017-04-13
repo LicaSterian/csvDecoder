@@ -1,6 +1,6 @@
 # CSV Decoder [![Build Status](https://travis-ci.org/empatica/csvparser.svg?branch=master)](https://travis-ci.org/empatica/csvparser) [![codecov.io](http://codecov.io/github/empatica/csvparser/coverage.svg?branch=master)](http://codecov.io/github/empatica/csvparser?branch=master)
 
-Simple library that parse a CSV file and returns an array of pointers to the given type.
+Simple library that parses a CSV io.Reader and maps it to a given array struct.
 
 ### Limitations
 
@@ -10,7 +10,7 @@ Simple library that parse a CSV file and returns an array of pointers to the giv
 
 ### Install
 
-    go get -u github.com/empatica/csvparser
+    go get -u github.com/licasterian/csvdecoder
 
 ### Usage
 

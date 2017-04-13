@@ -26,6 +26,7 @@ func NewDecoder(reader io.Reader) *Decoder {
 
 //Decode method accepts a pointer to a slice with it will populate and returns a error.
 //TODO accept tag values as index also
+//TODO see why it puts "0" to unspecified csv tag
 func (p *Decoder) Decode(v interface{}) error {
 	rv := reflect.ValueOf(v)
 	re := rv.Elem()
@@ -60,49 +61,51 @@ func (p *Decoder) Decode(v interface{}) error {
 		for i := 0; i < rte.NumField(); i++ {
 			var field = rte.Field(i)
 			var tag = field.Tag.Get("csv")
-			fieldIndex := p.headerKeys[tag]
-			var value = line[fieldIndex]
-			var settableField = row.Elem().FieldByName(field.Name)
-			switch field.Type.Name() {
-			case "bool":
-				var parsedBool, err = strconv.ParseBool(value)
-				if err != nil {
-					return err
+			if tag != "" {
+				fieldIndex := p.headerKeys[tag]
+				var value = line[fieldIndex]
+				var settableField = row.Elem().FieldByName(field.Name)
+				switch field.Type.Name() {
+				case "bool":
+					var parsedBool, err = strconv.ParseBool(value)
+					if err != nil {
+						return err
+					}
+					settableField.SetBool(parsedBool)
+				case "uint", "uint8", "uint16", "uint32", "uint64":
+					var parsedUint, err = strconv.ParseUint(value, 10, 64)
+					if err != nil {
+						return err
+					}
+					settableField.SetUint(uint64(parsedUint))
+				case "int", "int32", "int64":
+					var parsedInt, err = strconv.Atoi(value)
+					if err != nil {
+						return err
+					}
+					settableField.SetInt(int64(parsedInt))
+				case "float32":
+					var parsedFloat, err = strconv.ParseFloat(value, 32)
+					if err != nil {
+						return err
+					}
+					settableField.SetFloat(parsedFloat)
+				case "float64":
+					var parsedFloat, err = strconv.ParseFloat(value, 64)
+					if err != nil {
+						return err
+					}
+					settableField.SetFloat(parsedFloat)
+				case "string":
+					settableField.SetString(value)
+				case "Time":
+					dateTagFormat := field.Tag.Get("csvDate")
+					var date, err = time.Parse(dateTagFormat, value)
+					if err != nil {
+						return err
+					}
+					settableField.Set(reflect.ValueOf(date))
 				}
-				settableField.SetBool(parsedBool)
-			case "uint", "uint8", "uint16", "uint32", "uint64":
-				var parsedUint, err = strconv.ParseUint(value, 10, 64)
-				if err != nil {
-					return err
-				}
-				settableField.SetUint(uint64(parsedUint))
-			case "int", "int32", "int64":
-				var parsedInt, err = strconv.Atoi(value)
-				if err != nil {
-					return err
-				}
-				settableField.SetInt(int64(parsedInt))
-			case "float32":
-				var parsedFloat, err = strconv.ParseFloat(value, 32)
-				if err != nil {
-					return err
-				}
-				settableField.SetFloat(parsedFloat)
-			case "float64":
-				var parsedFloat, err = strconv.ParseFloat(value, 64)
-				if err != nil {
-					return err
-				}
-				settableField.SetFloat(parsedFloat)
-			case "string":
-				settableField.SetString(value)
-			case "Time":
-				dateTagFormat := field.Tag.Get("csvDate")
-				var date, err = time.Parse(dateTagFormat, value)
-				if err != nil {
-					return err
-				}
-				settableField.Set(reflect.ValueOf(date))
 			}
 		}
 		re.Set(reflect.Append(re, row.Elem()))
