@@ -47,6 +47,10 @@ func (p *Decoder) Decode(v interface{}) error {
 		p.headerKeys[headerRecord] = headerRecordIndex
 	}
 	rte := rt.Elem()
+	if rte.Kind() == reflect.Ptr {
+		rte = rte.Elem()
+	}
+
 	for {
 		line, err := p.reader.Read()
 		if err != nil {
@@ -57,6 +61,9 @@ func (p *Decoder) Decode(v interface{}) error {
 			}
 		}
 		row := reflect.New(rte)
+		fmt.Println("row >>>", row)
+		fmt.Println("rt >>>", rt)
+		fmt.Println("rte >>>", rte)
 		for i := 0; i < rte.NumField(); i++ {
 			var field = rte.Field(i)
 			var tag = field.Tag.Get("csv")
@@ -108,7 +115,10 @@ func (p *Decoder) Decode(v interface{}) error {
 				}
 			}
 		}
-		re.Set(reflect.Append(re, row.Elem()))
+		if row.Kind() == reflect.Ptr {
+			row = row.Elem()
+		}
+		re.Set(reflect.Append(re, row))
 	}
 	return nil
 }

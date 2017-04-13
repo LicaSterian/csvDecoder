@@ -7,9 +7,9 @@ import (
 )
 
 type Entry struct {
-	Id        int `csv:"id"`
-	Nickname  string `csv:"nickname"`
-	CreatedOn time.Time `csv:"createdOn" csvDate:"2006-01-02"`
+	Id        int `csv:"id" json:"id"`
+	Nickname  string `csv:"nickname" json:"nickname"`
+	CreatedOn time.Time `csv:"createdOn" csvDate:"2006-01-02" json:"createdOn"`
 }
 
 func TestDecode(t *testing.T) {
@@ -29,5 +29,6 @@ func TestDecode(t *testing.T) {
 	if firstEntry.Id != 0 || firstEntry.Nickname != "SLIde" || firstEntry.CreatedOn.Format("2006-01-02") != "2017-04-12" {
 		t.Fatalf(`First csv entry should be {Id:0, Nickname:SLIde, CreatedOn: 2017-04-12 00:00:00 +0000UTC}, but it's %+v`, firstEntry)
 	}
+	rows[0].Id = 3
 	t.Logf("%#v", firstEntry)
 }
