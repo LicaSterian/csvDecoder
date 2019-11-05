@@ -1,4 +1,4 @@
-# CSV Decoder [![Build Status](https://travis-ci.org/empatica/csvparser.svg?branch=master)](https://travis-ci.org/empatica/csvparser) [![codecov.io](http://codecov.io/github/empatica/csvparser/coverage.svg?branch=master)](http://codecov.io/github/empatica/csvparser?branch=master)
+# CSV Decoder 
 
 Simple library that parses a CSV io.Reader and maps it to a given array struct.
 
