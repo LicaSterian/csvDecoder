@@ -45,12 +45,14 @@ It's required to specify a `csvDate` tag that will be used for parsing, followin
 ### Parse the file:
 
 ```go
-decoder := csv.NewDecoder()
-var entries []Entry
+decoder := csv.NewDecoder(reader)
+var entries []*Entry
 err := decoder.Decode(&entries)
 if err != nil {
     fmt.Printf("decoder.Decode error: %s\n", err.Error())
     return
 }
-fmt.Printf("entries: %+v\n", entries)
+for _, entry := range entries {
+  fmt.Printf("%+v\n", *entry)
+}
 ```
